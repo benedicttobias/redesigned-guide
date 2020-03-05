@@ -1,0 +1,68 @@
+version: '3.2'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.1
+    container_name: elasticSearch
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ELASTIC_PASSWORD: changeme
+      discovery.type: single-node
+    volumes:
+      - type: bind
+        source: ./elasticsearch/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - type: volume
+        source: elasticsearch
+        target: /usr/share/elasticsearch/data
+    networks:
+      - esnet
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+  logStash:
+    image: docker.elastic.co/logstash/logstash:7.6.1
+    container_name: logstash
+    volumes:
+      - type: bind
+        source: ./logstash/logstash.yml
+        target: /usr/share/logstash/config/logstash.yml
+        read_only: true
+      - type: bind
+        source: /c/Users/bento/Docker/logstash/pipeline/
+        target: /usr/share/logstash/pipeline/
+        read_only: true
+      - type: bind
+        source: /c/Users/bento/Docker/logstash/jdbc/mssql-jdbc-8.2.0.jre8.jar
+        target: /usr/share/logstash/jdbc/mssql-jdbc-8.2.0.jre8.jar
+        read_only: true
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    ports:
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+    networks:
+      - esnet
+    depends_on:
+      - elasticsearch
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.6.1
+    container_name: kibana
+    volumes:
+      - type: bind
+        source: ./kibana/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+    networks:
+      - esnet
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+volumes:
+  elasticsearch:
+    
+networks:
+  esnet:
+    driver: bridge
